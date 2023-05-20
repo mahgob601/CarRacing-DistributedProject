@@ -46,7 +46,7 @@ class CarRacing:
     def car(self, car_x_coordinate, car_y_coordinate):
         self.gameDisplay.blit(self.car1Img, (car_x_coordinate, car_y_coordinate))
 
-    def racing_window(self):
+    def racing_window(self): # start initial display and call run_car
         self.gameDisplay = pygame.display.set_mode((self.display_width, self.display_height))
         pygame.display.set_caption('Car Dodge')
         self.run_car()
@@ -75,11 +75,11 @@ class CarRacing:
             self.run_enemy_car(self.enemy_car_startx, self.enemy_car_starty)
             self.enemy_car_starty += self.enemy_car_speed #make care move toward my car
 
-            if self.enemy_car_starty > self.display_height:
+            if self.enemy_car_starty > self.display_height: # i think this to create new enemy car
                 self.enemy_car_starty = 0 - self.enemy_car_height
-                self.enemy_car_startx = random.randrange(310, 450)
+                self.enemy_car_startx = random.randrange(310, 450) #update x co of enemy car
 
-            self.car(self.car_x_coordinate, self.car_y_coordinate)
+            self.car(self.car_x_coordinate, self.car_y_coordinate) # first display to the car
             self.highscore(self.count)
             self.count += 1
             if (self.count % 100 == 0):#increase the car speen each 100 point
@@ -110,7 +110,7 @@ class CarRacing:
         car_racing.racing_window()
 
     def back_ground_raod(self):
-        self.gameDisplay.blit(self.bgImg, (self.bg_x1, self.bg_y1))
+        self.gameDisplay.blit(self.bgImg, (self.bg_x1, self.bg_y1)) #same idea of recycle view
         self.gameDisplay.blit(self.bgImg, (self.bg_x2, self.bg_y2))
 
         self.bg_y1 += self.bg_speed
