@@ -73,7 +73,7 @@ class CarRacing:
             self.back_ground_raod()
 
             self.run_enemy_car(self.enemy_car_startx, self.enemy_car_starty)
-            self.enemy_car_starty += self.enemy_car_speed
+            self.enemy_car_starty += self.enemy_car_speed #make care move toward my car
 
             if self.enemy_car_starty > self.display_height:
                 self.enemy_car_starty = 0 - self.enemy_car_height
@@ -82,9 +82,9 @@ class CarRacing:
             self.car(self.car_x_coordinate, self.car_y_coordinate)
             self.highscore(self.count)
             self.count += 1
-            if (self.count % 100 == 0):
+            if (self.count % 100 == 0):#increase the car speen each 100 point
                 self.enemy_car_speed += 1
-                self.bg_speed += 1
+                self.bg_speed += 1 #background speed
             if self.car_y_coordinate < self.enemy_car_starty + self.enemy_car_height:
                 if self.car_x_coordinate > self.enemy_car_startx and self.car_x_coordinate < self.enemy_car_startx + self.enemy_car_width or self.car_x_coordinate + self.car_width > self.enemy_car_startx and self.car_x_coordinate + self.car_width < self.enemy_car_startx + self.enemy_car_width:
                     self.crashed = True
@@ -92,10 +92,10 @@ class CarRacing:
 
             if self.car_x_coordinate < 310 or self.car_x_coordinate > 460:
                 self.crashed = True
-                self.display_message("Game Over !!!")
+                self.display_message("Game Over !!")
 
             pygame.display.update()
-            self.clock.tick(60)
+            self.clock.tick(60) # 60 is the fps
 
     def display_message(self, msg):
         font = pygame.font.SysFont("comicsansms", 72, True)
