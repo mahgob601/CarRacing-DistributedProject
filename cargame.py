@@ -21,7 +21,7 @@ class CarRacing:
 
         self.crashed = False
 
-        self.carImg = pygame.image.load('.\\img\\car.png')
+        self.car1Img = pygame.image.load('.\\img\\car.png')
         self.car_x_coordinate = (self.display_width * 0.45)
         self.car_y_coordinate = (self.display_height * 0.8)
         self.car_width = 49
@@ -44,7 +44,7 @@ class CarRacing:
         self.count = 0
 
     def car(self, car_x_coordinate, car_y_coordinate):
-        self.gameDisplay.blit(self.carImg, (car_x_coordinate, car_y_coordinate))
+        self.gameDisplay.blit(self.car1Img, (car_x_coordinate, car_y_coordinate))
 
     def racing_window(self):
         self.gameDisplay = pygame.display.set_mode((self.display_width, self.display_height))
@@ -83,7 +83,8 @@ class CarRacing:
             self.highscore(self.count)
             self.count += 1
             if (self.count % 100 == 0):#increase the car speen each 100 point
-                self.enemy_car_speed += 1
+                #self.enemy_car_speed += 1
+                self.enemy_car_speed = 0#modify untill build 2 cares
                 self.bg_speed += 1 #background speed
             if self.car_y_coordinate < self.enemy_car_starty + self.enemy_car_height:
                 if self.car_x_coordinate > self.enemy_car_startx and self.car_x_coordinate < self.enemy_car_startx + self.enemy_car_width or self.car_x_coordinate + self.car_width > self.enemy_car_startx and self.car_x_coordinate + self.car_width < self.enemy_car_startx + self.enemy_car_width:
@@ -134,6 +135,12 @@ class CarRacing:
         text = font.render("Thanks for playing!", True, self.white)
         self.gameDisplay.blit(text, (600, 520))
 
+    def read_pos(str):
+        str = str.split(",")
+        return int(str[0]), int(str[1])
+
+    def make_pos(tup):
+        return str(tup[0]) + "," + str(tup[1])
 
 if __name__ == '__main__':
     car_racing = CarRacing()
