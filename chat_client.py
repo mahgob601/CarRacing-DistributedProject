@@ -6,7 +6,7 @@ from tkinter import simpledialog
 
 
 
-HOST = "localhost"
+HOST = "13.51.195.79"
 PORT = 9999
 
 class Client:
