@@ -1,60 +1,80 @@
 import socket
-from _thread import *
-import sys
+import threading
 
-server ="192.168.1.5"
-port =5555
+class Server:
+    def __init__(self):
+        self.host = "localhost"
+        self.port = 5560
+        self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.server.bind((self.host, self.port))
+        self.server.listen()
+        self.clients = []
+        self.cars = []
 
-s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-try:
-    s.bind((server, port))
-except socket.error as e:
-    str(e)
-
-s.listen(2)
-print("Waiting for a connection, Server Started")
-
-def read_pos(str):
-    str = str.split(",")
-    return int(str[0]), int(str[1])
-
-def make_pos(tup):
-    return str(tup[0]) + "," + str(tup[1])
-
-pos = [(320,480),(360,480)]
-
-def threaded_client(conn, player):
-    conn.send(str.encode(make_pos(pos[player])))
-    reply = ""
-    while True:
-        try:
-            data = read_pos(conn.recv(2048).decode())
-            pos[player] = data
-
-            if not data:
-                print("Disconnected")
+    def handle_client(self, client, car):
+        while True:
+            try:
+                print("in try in client handle")
+                # Receive the updated coordinates from the client
+                data = client.recv(1024).decode()
+                #print("check1")
+                print(data)
+                car_x, car_y = self.read_pos(data)# throw an exception here bc data is empty
+                #print("check2")
+                car.car_x_coordinate = car_x
+                car.car_y_coordinate = car_y
+                #print("check3")
+                # Broadcast the updated coordinates to all clients
+                for c in self.clients:
+                    c.sendall(data.encode())
+                print("check4")
+            except:
+                # Handle client disconnection
+                print("in exception in client handle")
+                index = self.clients.index(client)
+                self.clients.remove(client)
+                car = self.cars[index]
+                self.cars.remove(car)
+                client.close()
                 break
-            else:
-                if player == 1:
-                    reply = pos[0]
-                else:
-                    reply = pos[1]
 
-                print("Received: ", data)
-                print("Sending : ", reply)
+    def start(self):
+        print("Server started. Waiting for connections...")
+        while True:
+            client, address = self.server.accept()
+            print("Connected to:", address)
+            #client.sendall("Welcome to the game!".encode())
 
-            conn.sendall(str.encode(make_pos(reply)))
-        except:
-            break
+            # Create a new car for the client
+            car = Car()
+            self.cars.append(car)
 
-    print("Lost connection")
-    conn.close()
+            # Send the initial car coordinates to the client
+            client.sendall(self.make_pos(car.car_x_coordinate, car.car_y_coordinate).encode())
 
-currentPlayer = 0
-while True:
-    conn, addr = s.accept()
-    print("Connected to:", addr)
+            # Start a new thread to handle the client
+            thread = threading.Thread(target=self.handle_client, args=(client, car))
+            thread.start()
 
-    start_new_thread(threaded_client, (conn, currentPlayer))
-    currentPlayer += 1
+            self.clients.append(client)
+            print(f"Active connections: {len(self.clients)}")
+
+    @staticmethod
+    def read_pos(data):
+        data = data.split(",")
+        #print("check in read_pos")
+        return int(data[0]), int(data[1])
+
+    @staticmethod
+    def make_pos(x, y):
+        return str(x) + "," + str(y)
+
+
+class Car:
+    def __init__(self):
+        self.car_x_coordinate = 360
+        self.car_y_coordinate = 480
+
+if __name__ == "__main__":
+    server = Server()
+    server.start()
