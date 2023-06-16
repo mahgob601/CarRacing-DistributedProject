@@ -3,6 +3,8 @@ import pygame
 from time import sleep
 import socket
 from threading import Thread
+from car import MyCar
+
 
 class CarRacing:
     def __init__(self):
@@ -13,9 +15,9 @@ class CarRacing:
         self.white = (255, 255, 255)
         self.clock = pygame.time.Clock()
         self.gameDisplay = None
-        self.car_x_coordinate = 360
-        self.car_y_coordinate = 480
-        self.availableCars = dict()
+
+        # self.car_x_coordinate = 0
+        # self.car_y_coordinate = 0
 
         self.initialize()
 
@@ -23,7 +25,7 @@ class CarRacing:
         self.crashed = False
 
         self.car1Img = pygame.image.load('.\\img\\car.png')
-        self.car_width = 49
+        self.car_width = 29
 
         # enemy_car
         self.enemy_car = pygame.image.load('.\\img\\enemy_car_1.png')
@@ -47,8 +49,8 @@ class CarRacing:
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.connect((self.server_host, self.server_port))
 
-    def car(self, car_x_coordinate, car_y_coordinate):
-        self.gameDisplay.blit(self.car1Img, (car_x_coordinate, car_y_coordinate))
+    def car(self, Car):
+        self.gameDisplay.blit(Car.car1Img, (Car.car_x_coordinate, Car.car_y_coordinate))
 
     def racing_window(self):
         self.gameDisplay = pygame.display.set_mode((self.display_width, self.display_height))
@@ -59,7 +61,6 @@ class CarRacing:
         receive_thread.start()
 
         self.run_car()
-
 
     def run_car(self):
         print("in run_car")
@@ -78,9 +79,10 @@ class CarRacing:
                     data = self.make_pos(self.car_x_coordinate, self.car_y_coordinate)
                     self.server.sendall(data.encode())
 
+
             self.gameDisplay.fill(self.black)
             self.back_ground_raod()
-            self.car(self.car_x_coordinate, self.car_y_coordinate)#display and update the car
+            self.car(self.car_x_coordinate, self.car_y_coordinate)  # display and update the car
 
             self.run_enemy_car(self.enemy_car_startx, self.enemy_car_starty)
             self.enemy_car_starty += self.enemy_car_speed  # make care move toward my car
@@ -89,12 +91,12 @@ class CarRacing:
                 self.enemy_car_starty = 0 - self.enemy_car_height
                 self.enemy_car_startx = random.randrange(310, 450)  # update x co of enemy car
 
-            #self.car(self.car_x_coordinate, self.car_y_coordinate)  # first display to the car
+            # self.car(self.car_x_coordinate, self.car_y_coordinate)  # first display to the car
             self.highscore(self.count)
             self.count += 1
 
             if (self.count % 100 == 0):  # increase the car speen each 100 point
-                #self.enemy_car_speed += 1
+                # self.enemy_car_speed += 1
                 self.enemy_car_speed = 0  # modify untill build 2 cares
                 self.bg_speed += 1  # background speed
 
@@ -129,22 +131,12 @@ class CarRacing:
         while not self.crashed:
             try:
                 # Receive updates from the server
-                print("in receive update in try")
+                print("in recive update in try")
                 data = self.server.recv(1024).decode()
-                print("data received from server " , data)
-                if len(data.split('|'))>1:
-                    data = data.split('|')
-                    carID = data[0]
-                    print("car id", carID)
-                    pos = data[1]
-                    self.availableCars[carID]=pos
-                else:
-                    pos = data
-
-                print("printing the dictionary",self.availableCars)
-                #car_x, car_y = self.read_pos(pos)
-                #self.car_x_coordinate = car_x
-                #self.car_y_coordinate = car_y
+                print("data recived from server ", data)
+                car_x, car_y = self.read_pos(data)
+                self.car_x_coordinate = car_x
+                self.car_y_coordinate = car_y
             except:
                 # Handle server disconnection
                 print("in recive update in except")
@@ -183,6 +175,7 @@ class CarRacing:
     @staticmethod
     def make_pos(x, y):
         return str(x) + "," + str(y)
+
 
 if __name__ == '__main__':
     car_racing = CarRacing()

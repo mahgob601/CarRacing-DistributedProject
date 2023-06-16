@@ -11,23 +11,26 @@ class Server:
         self.clients = []
         self.cars = []
 
-    def handle_client(self, client, car):
+    def handle_client(self, client, car,address):
         while True:
             try:
                 print("in try in client handle")
                 # Receive the updated coordinates from the client
                 data = client.recv(1024).decode()
-                #print("check1")
                 print(data)
+                print("check1")
                 car_x, car_y = self.read_pos(data)# throw an exception here bc data is empty
-                #print("check2")
+                print("check2")
                 car.car_x_coordinate = car_x
                 car.car_y_coordinate = car_y
                 #print("check3")
                 # Broadcast the updated coordinates to all clients
                 for c in self.clients:
-                    c.sendall(data.encode())
-                print("check4")
+                    if c != client:
+                        myData = str(address) + "|" + data
+                        c.sendall(myData.encode())
+                    else:
+                        print("check4")
             except:
                 # Handle client disconnection
                 print("in exception in client handle")
@@ -43,6 +46,7 @@ class Server:
         while True:
             client, address = self.server.accept()
             print("Connected to:", address)
+            print("Connected to:", client)
             #client.sendall("Welcome to the game!".encode())
 
             # Create a new car for the client
@@ -53,7 +57,7 @@ class Server:
             client.sendall(self.make_pos(car.car_x_coordinate, car.car_y_coordinate).encode())
 
             # Start a new thread to handle the client
-            thread = threading.Thread(target=self.handle_client, args=(client, car))
+            thread = threading.Thread(target=self.handle_client, args=(client, car,address))
             thread.start()
 
             self.clients.append(client)
