@@ -4,6 +4,7 @@ from time import sleep
 import socket
 from threading import Thread
 
+
 class CarRacing:
     def __init__(self):
         pygame.init()
@@ -50,15 +51,62 @@ class CarRacing:
     def car(self, car_x_coordinate, car_y_coordinate):
         self.gameDisplay.blit(self.car1Img, (car_x_coordinate, car_y_coordinate))
 
+
     def racing_window(self):
         self.gameDisplay = pygame.display.set_mode((self.display_width, self.display_height))
         pygame.display.set_caption('Car Dodge')
 
         # Start a thread to receive updates from the server
         receive_thread = Thread(target=self.receive_updates)
+        otherClients_thread = Thread(target=self.renderOtherClients)
         receive_thread.start()
-
+        otherClients_thread.start()
         self.run_car()
+
+    def renderOtherClients(self):
+        print("hello from the thread")
+        temp_list=[]
+        while True:
+
+            for i in self.availableCars.keys():
+                if len(temp_list) == 0:
+
+                    newClient = Client_car()
+                    newClient.tag=i
+                    newClient.client_car=pygame.image.load('.\\img\\car2.png')
+                    print("tag client " , newClient.tag,"end print")
+                    temp_list.append(newClient)
+                    thingx, thingy = self.read_pos(self.availableCars[i])
+                    print(f"In habd {i}: {thingx} , {thingy}")
+
+                    self.gameDisplay.blit(newClient.client_car, (thingx, thingy))
+
+                exist = False
+                for k in temp_list:
+                    if i == k.tag:
+                        exist = True
+                        thingx, thingy = self.read_pos(self.availableCars[i])
+                        print(f"In habd {i}: {thingx} , {thingy}")
+
+                        self.gameDisplay.blit(k.client_car, (thingx, thingy))
+                        break
+                if not exist:
+
+                    newClient = Client_car()
+                    newClient.tag = i
+                    newClient.client_car = pygame.image.load('.\\img\\car2.png')
+                    temp_list.append(newClient)
+                    thingx, thingy = self.read_pos(self.availableCars[i])
+                    print(f"In habd {i}: {thingx} , {thingy}")
+
+                    self.gameDisplay.blit(newClient.client_car, (thingx, thingy))
+
+
+
+
+
+
+
 
 
     def run_car(self):
@@ -81,6 +129,8 @@ class CarRacing:
             self.gameDisplay.fill(self.black)
             self.back_ground_raod()
             self.car(self.car_x_coordinate, self.car_y_coordinate)#display and update the car
+            # habda
+
 
             self.run_enemy_car(self.enemy_car_startx, self.enemy_car_starty)
             self.enemy_car_starty += self.enemy_car_speed  # make care move toward my car
@@ -183,6 +233,12 @@ class CarRacing:
     @staticmethod
     def make_pos(x, y):
         return str(x) + "," + str(y)
+class Client_car:
+    def __int__(self):
+        self.tag= "tagID"
+        self.client_car ="imagejhdjknd"
+        self.client_car_width = 49
+        self.client_car_height = 100
 
 if __name__ == '__main__':
     car_racing = CarRacing()
