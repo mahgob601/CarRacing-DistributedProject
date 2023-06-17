@@ -4,10 +4,12 @@ import tkinter
 import tkinter.scrolledtext
 from tkinter import simpledialog
 
+backup_host = "13.51.48.183"
+backup_port = 5561
 
-
-HOST = "13.51.195.79"
-PORT = 9999
+HOST = "13.49.68.255"
+PORT = 5560
+connected_clients = []
 
 class Client:
 
@@ -67,24 +69,42 @@ class Client:
         self.input_area.delete('1.0', 'end')
 
     def receive(self):
+        print("started receiving")
         while self.running:
             try:
                 message = self.sock.recv(1024).decode('utf-8')
-                if message == "NICK":
-                    self.sock.send(self.nickname.encode('utf-8'))
-                else:
-                    if self.gui_done:
-                        self.text_area.config(state='normal')
-                        self.text_area.insert('end',message)
-                        self.text_area.yview('end')
-                        self.text_area.config(state='disabled')
+                special_message = message.split('$')
+                if message == "":
+                    raise Exception
+
+                for m in special_message:
+                    splitted_msg= m.split(' ')
+                    print(m)
+
+                    if splitted_msg[0] == "NEWCONN":
+                        connected_clients = []
+                        for x in range(1, len(splitted_msg)):
+                            connected_clients.append(splitted_msg[x])
+                        print(connected_clients)
+                    elif m == "NICK":
+                        self.sock.send(self.nickname.encode('utf-8'))
+                    else:
+                        if self.gui_done:
+                            self.text_area.config(state='normal')
+                            self.text_area.insert('end',m)
+                            self.text_area.yview('end')
+                            self.text_area.config(state='disabled')
 
             except ConnectionAbortedError:
                 break
             except:
-                print("Error")
+                print("Main server crashed")
                 self.sock.close()
-                break
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.connect((backup_host, backup_port))
+
+                print("connected to backup server")
+
 
 client = Client(HOST,PORT)
 
