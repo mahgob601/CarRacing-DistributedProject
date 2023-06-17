@@ -20,6 +20,7 @@ class CarRacing:
         self.car_x_coordinate = 360
         self.car_y_coordinate = 480
         self.availableCars = dict()
+        self.availableCarsScore = dict()
         self.initialize()
 
     def initialize(self):
@@ -71,6 +72,8 @@ class CarRacing:
         print("hello from the thread")
         temp_list=[]
         while True:
+            left=0
+            right=30
             if len(temp_list) == 0 and len(self.availableCars.keys()) != 0:
                 newClient = Client_car()
                 print("dict as list ")
@@ -79,6 +82,8 @@ class CarRacing:
                 temp_list.append(newClient)
                 thingx, thingy = self.read_pos(self.availableCars[newClient.tag])
                 self.gameDisplay.blit(newClient.client_car, (thingx, thingy))
+
+
             else:
                 if len(self.availableCars) > len(temp_list):
                     diff = len(self.availableCars) - len(temp_list)
@@ -88,10 +93,14 @@ class CarRacing:
                         newClient.tag = keyList[i]
                         newClient.client_car = pygame.image.load('.\\img\\car2.png')
                         temp_list.append(newClient)
+                font = pygame.font.SysFont("arial", 20)
                 for k in temp_list:
                     thingx, thingy = self.read_pos(self.availableCars[k.tag])
                     self.gameDisplay.blit(k.client_car, (thingx, thingy))
+                    text = font.render(k.tag+" Score : " + str(self.availableCarsScore[k.tag]), True, self.white)
+                    self.gameDisplay.blit(text,(left, right))
 
+                    right+=20
 
 
 
@@ -113,8 +122,9 @@ class CarRacing:
                         self.car_x_coordinate += 50
 
                     # Send the updated coordinates to the server
-                    data = self.make_pos(self.car_x_coordinate, self.car_y_coordinate)
-                    self.server.sendall(data.encode())
+            data = self.make_pos(self.car_x_coordinate, self.car_y_coordinate)
+            msg = self.nickname + "|" + str(self.count) + "|" + data
+            self.server.sendall(msg.encode())
 
             self.gameDisplay.fill(self.black)
             self.back_ground_raod()
@@ -173,13 +183,16 @@ class CarRacing:
 
                 data = self.server.recv(1024).decode()
                 print("data received from server " , data)
-                if len(data.split('|'))>1:
+                if len(data.split('|')) == 3:
                     data = data.split('|')
                     carID = data[0]
+                    score = data[1]
+                    pos = data[2]
+                    self.availableCarsScore[carID]=score
 
-                    pos = data[1]
                     self.availableCars[carID]=pos
                 else:
+                    print(data, " bazet hena ")
                     pos = data
 
                 print("printing the dictionary",self.availableCars)

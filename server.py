@@ -18,16 +18,18 @@ class Server:
                 # Receive the updated coordinates from the client
                 data = client.recv(1024).decode()
                 print(data)
-                print("check1")
-                car_x, car_y = self.read_pos(data)# throw an exception here bc data is empty
-                print("check2")
+                #print("check1")
+                coords = data.split("|")[2]
+                car_x, car_y = self.read_pos(coords)# throw an exception here bc data is empty
+               # print("check2")
                 car.car_x_coordinate = car_x
                 car.car_y_coordinate = car_y
                 #print("check3")
                 # Broadcast the updated coordinates to all clients
                 for c in self.clients:
                     if c != client:
-                        myData = str(address) + "|" + data
+                        #myData = str(address) + "|" + data
+                        myData = data
                         c.sendall(myData.encode())
                     else:
                         print("check4")
