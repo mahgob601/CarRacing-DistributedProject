@@ -3,6 +3,9 @@ import pygame
 from time import sleep
 import socket
 from threading import Thread
+import tkinter
+import tkinter.scrolledtext
+from tkinter import simpledialog
 
 
 class CarRacing:
@@ -17,7 +20,6 @@ class CarRacing:
         self.car_x_coordinate = 360
         self.car_y_coordinate = 480
         self.availableCars = dict()
-
         self.initialize()
 
     def initialize(self):
@@ -47,6 +49,8 @@ class CarRacing:
         self.server_port = 5560  # Replace with the server's port number
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.connect((self.server_host, self.server_port))
+        self.nickname=self.client_Nickname()
+        self.server.send((self.nickname).encode())
 
     def car(self, car_x_coordinate, car_y_coordinate):
         self.gameDisplay.blit(self.car1Img, (car_x_coordinate, car_y_coordinate))
@@ -67,41 +71,26 @@ class CarRacing:
         print("hello from the thread")
         temp_list=[]
         while True:
-
-            for i in self.availableCars.keys():
-                if len(temp_list) == 0:
-
-                    newClient = Client_car()
-                    newClient.tag=i
-                    newClient.client_car=pygame.image.load('.\\img\\car2.png')
-                    print("tag client " , newClient.tag,"end print")
-                    temp_list.append(newClient)
-                    thingx, thingy = self.read_pos(self.availableCars[i])
-                    print(f"In habd {i}: {thingx} , {thingy}")
-
-                    self.gameDisplay.blit(newClient.client_car, (thingx, thingy))
-
-                exist = False
+            if len(temp_list) == 0 and len(self.availableCars.keys()) != 0:
+                newClient = Client_car()
+                print("dict as list ")
+                newClient.tag = list(self.availableCars.keys())[0]
+                newClient.client_car = pygame.image.load('.\\img\\car2.png')
+                temp_list.append(newClient)
+                thingx, thingy = self.read_pos(self.availableCars[newClient.tag])
+                self.gameDisplay.blit(newClient.client_car, (thingx, thingy))
+            else:
+                if len(self.availableCars) > len(temp_list):
+                    diff = len(self.availableCars) - len(temp_list)
+                    keyList = list(self.availableCars.keys())
+                    for i in range(len(keyList) - diff, len(keyList)):
+                        newClient = Client_car()
+                        newClient.tag = keyList[i]
+                        newClient.client_car = pygame.image.load('.\\img\\car2.png')
+                        temp_list.append(newClient)
                 for k in temp_list:
-                    if i == k.tag:
-                        exist = True
-                        thingx, thingy = self.read_pos(self.availableCars[i])
-                        print(f"In habd {i}: {thingx} , {thingy}")
-
-                        self.gameDisplay.blit(k.client_car, (thingx, thingy))
-                        break
-                if not exist:
-
-                    newClient = Client_car()
-                    newClient.tag = i
-                    newClient.client_car = pygame.image.load('.\\img\\car2.png')
-                    temp_list.append(newClient)
-                    thingx, thingy = self.read_pos(self.availableCars[i])
-                    print(f"In habd {i}: {thingx} , {thingy}")
-
-                    self.gameDisplay.blit(newClient.client_car, (thingx, thingy))
-
-
+                    thingx, thingy = self.read_pos(self.availableCars[k.tag])
+                    self.gameDisplay.blit(k.client_car, (thingx, thingy))
 
 
 
@@ -110,8 +99,9 @@ class CarRacing:
 
 
     def run_car(self):
-        print("in run_car")
-        while not self.crashed:
+
+        #while not self.crashed:
+        while True:
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -176,16 +166,17 @@ class CarRacing:
             self.bg_y2 = -600
 
     def receive_updates(self):
-        while not self.crashed:
+        #while not self.crashed:
+        while True:
             try:
                 # Receive updates from the server
-                print("in receive update in try")
+
                 data = self.server.recv(1024).decode()
                 print("data received from server " , data)
                 if len(data.split('|'))>1:
                     data = data.split('|')
                     carID = data[0]
-                    print("car id", carID)
+
                     pos = data[1]
                     self.availableCars[carID]=pos
                 else:
@@ -197,7 +188,7 @@ class CarRacing:
                 #self.car_y_coordinate = car_y
             except:
                 # Handle server disconnection
-                print("in recive update in except")
+
                 self.crashed = True
                 print("Disconnected from the server")
 
@@ -209,8 +200,10 @@ class CarRacing:
         pygame.display.update()
         self.clock.tick(60)
         sleep(1)
-        car_racing.initialize()
-        car_racing.racing_window()
+        #car_racing.initialize()
+        #car_racing.racing_window()
+        self.car_x_coordinate = 360
+        self.car_y_coordinate = 480
 
     def run_enemy_car(self, thingx, thingy):
         self.gameDisplay.blit(self.enemy_car, (thingx, thingy))
@@ -233,9 +226,15 @@ class CarRacing:
     @staticmethod
     def make_pos(x, y):
         return str(x) + "," + str(y)
+    def client_Nickname(self):
+        msg = tkinter.Tk()
+        msg.withdraw()
+        self.nickname = simpledialog.askstring("Nickname", "Please Choose a nickname", parent=msg)
+        print(self.nickname)
+        return self.nickname
 class Client_car:
     def __int__(self):
-        self.tag= "tagID"
+        self.tag= 'tag'
         self.client_car ="imagejhdjknd"
         self.client_car_width = 49
         self.client_car_height = 100

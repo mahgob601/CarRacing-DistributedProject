@@ -47,6 +47,8 @@ class Server:
             client, address = self.server.accept()
             print("Connected to:", address)
             print("Connected to:", client)
+            nickname= client.recv(1024).decode()
+            print(f"{nickname} ba2a connected")
             #client.sendall("Welcome to the game!".encode())
 
             # Create a new car for the client
@@ -57,7 +59,7 @@ class Server:
             client.sendall(self.make_pos(car.car_x_coordinate, car.car_y_coordinate).encode())
 
             # Start a new thread to handle the client
-            thread = threading.Thread(target=self.handle_client, args=(client, car,address))
+            thread = threading.Thread(target=self.handle_client, args=(client, car,nickname))
             thread.start()
 
             self.clients.append(client)
