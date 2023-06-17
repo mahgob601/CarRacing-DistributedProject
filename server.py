@@ -1,6 +1,6 @@
 import socket
 import threading
-
+#main server
 class Server:
     def __init__(self):
         self.host = "localhost"
