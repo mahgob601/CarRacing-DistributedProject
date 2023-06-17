@@ -10,24 +10,36 @@ class Server:
         self.server.listen()
         self.clients = []
         self.cars = []
+        self.serveravailable=dict()
+        self.serverscore=dict()
+        self.myScore = 0
+        self.max = 0
 
     def handle_client(self, client, car,address):
         while True:
             try:
+                #score ==> 1 coor ==> 2 ID ==> 0
                 print("in try in client handle")
                 # Receive the updated coordinates from the client
                 data = client.recv(1024).decode()
                 print(data)
                 print("check1")
-                car_x, car_y = self.read_pos(data)# throw an exception here bc data is empty
+                coords = data.split("|")[2]
+                car_x, car_y = self.read_pos(coords)# throw an exception here bc data is empty
                 print("check2")
                 car.car_x_coordinate = car_x
                 car.car_y_coordinate = car_y
-                #print("check3")
+                print("check3")
                 # Broadcast the updated coordinates to all clients
+                self.serveravailable[address]= coords
+                self.serverscore[address]= int(data.split("|")[1])
+                print(self.serveravailable)
+                print(self.serverscore)
+
                 for c in self.clients:
                     if c != client:
-                        myData = str(address) + "|" + data
+                        #myData = str(address) + "|" + data
+                        myData = data
                         c.sendall(myData.encode())
                     else:
                         print("check4")
@@ -50,14 +62,26 @@ class Server:
             nickname= client.recv(1024).decode()
             print(f"{nickname} ba2a connected")
             #client.sendall("Welcome to the game!".encode())
-
-            # Create a new car for the client
-            car = Car()
-            self.cars.append(car)
+            if nickname not in self.serveravailable:
+                # Create a new car for the client
+                car = Car()
+                self.cars.append(car)
+                self.myScore = 0
+            else:
+                data= self.serveravailable[nickname]
+                self.myScore = self.serverscore[nickname]
+                coords = data
+                car_x, car_y = self.read_pos(coords)
+                car = Car()
+                self.cars.append(car)
+                car.car_x_coordinate=car_x
+                car.car_y_coordinate=car_y
 
             # Send the initial car coordinates to the client
-            client.sendall(self.make_pos(car.car_x_coordinate, car.car_y_coordinate).encode())
-
+            coordStr = self.make_pos(car.car_x_coordinate, car.car_y_coordinate)
+            toBeSent = str(nickname) + "|" + str(self.myScore) + "|"+ coordStr
+            #client.sendall(self.make_pos(car.car_x_coordinate, car.car_y_coordinate).encode())
+            client.sendall(toBeSent.encode())
             # Start a new thread to handle the client
             thread = threading.Thread(target=self.handle_client, args=(client, car,nickname))
             thread.start()
@@ -78,7 +102,7 @@ class Server:
 
 class Car:
     def __init__(self):
-        self.car_x_coordinate = 360
+        self.car_x_coordinate = 310
         self.car_y_coordinate = 480
 
 if __name__ == "__main__":

@@ -1,4 +1,6 @@
 import random
+import sys
+
 import pygame
 from time import sleep
 import socket
@@ -20,7 +22,9 @@ class CarRacing:
         self.car_x_coordinate = 360
         self.car_y_coordinate = 480
         self.availableCars = dict()
+        self.availableCarsScore = dict()
         self.initialize()
+        self.connection=True
 
     def initialize(self):
         self.crashed = False
@@ -51,6 +55,14 @@ class CarRacing:
         self.server.connect((self.server_host, self.server_port))
         self.nickname=self.client_Nickname()
         self.server.send((self.nickname).encode())
+        self.initialvalues=self.server.recv(1024).decode()
+
+        self.initialvalues=self.initialvalues.split("|")
+        print(self.initialvalues)
+        self.car_x_coordinate,self.car_y_coordinate=self.read_pos(self.initialvalues[2])
+        self.count = int(self.initialvalues[1])
+        print("========================================")
+
 
     def car(self, car_x_coordinate, car_y_coordinate):
         self.gameDisplay.blit(self.car1Img, (car_x_coordinate, car_y_coordinate))
@@ -71,6 +83,8 @@ class CarRacing:
         print("hello from the thread")
         temp_list=[]
         while True:
+            left=0
+            right=30
             if len(temp_list) == 0 and len(self.availableCars.keys()) != 0:
                 newClient = Client_car()
                 print("dict as list ")
@@ -79,6 +93,8 @@ class CarRacing:
                 temp_list.append(newClient)
                 thingx, thingy = self.read_pos(self.availableCars[newClient.tag])
                 self.gameDisplay.blit(newClient.client_car, (thingx, thingy))
+
+
             else:
                 if len(self.availableCars) > len(temp_list):
                     diff = len(self.availableCars) - len(temp_list)
@@ -88,24 +104,26 @@ class CarRacing:
                         newClient.tag = keyList[i]
                         newClient.client_car = pygame.image.load('.\\img\\car2.png')
                         temp_list.append(newClient)
+                font = pygame.font.SysFont("arial", 20)
                 for k in temp_list:
                     thingx, thingy = self.read_pos(self.availableCars[k.tag])
                     self.gameDisplay.blit(k.client_car, (thingx, thingy))
+                    text = font.render(k.tag+" Score : " + str(self.availableCarsScore[k.tag]), True, self.white)
+                    self.gameDisplay.blit(text,(left, right))
 
-
-
-
+                    right+=20
 
 
 
     def run_car(self):
 
         #while not self.crashed:
-        while True:
+        while self.connection:
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
-                    self.crashed = True
+                    self.connection = False
+                    self.server.close()
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_LEFT:
                         self.car_x_coordinate -= 50
@@ -113,8 +131,21 @@ class CarRacing:
                         self.car_x_coordinate += 50
 
                     # Send the updated coordinates to the server
-                    data = self.make_pos(self.car_x_coordinate, self.car_y_coordinate)
-                    self.server.sendall(data.encode())
+            data = self.make_pos(self.car_x_coordinate, self.car_y_coordinate)
+            msg = self.nickname + "|" + str(self.count) + "|" + data
+            if self.connection:
+                self.server.sendall(msg.encode())
+            else:
+                pygame.quit()
+                exit()
+                break
+
+            if self.count >= 1000:
+                self.display_message("You won, game end")
+                self.connection = False
+                sleep(3)
+                pygame.quit()
+                exit()
 
             self.gameDisplay.fill(self.black)
             self.back_ground_raod()
@@ -134,8 +165,8 @@ class CarRacing:
             self.count += 1
 
             if (self.count % 100 == 0):  # increase the car speen each 100 point
-                #self.enemy_car_speed += 1
-                self.enemy_car_speed = 0  # modify untill build 2 cares
+                self.enemy_car_speed += 1
+                #self.enemy_car_speed = 0  # modify untill build 2 cares
                 self.bg_speed += 1  # background speed
 
             if self.car_y_coordinate < self.enemy_car_starty + self.enemy_car_height:
@@ -146,6 +177,8 @@ class CarRacing:
             if self.car_x_coordinate < 310 or self.car_x_coordinate > 460:
                 self.crashed = True
                 self.display_message("Game Over !!")
+
+
 
             pygame.display.update()
             self.clock.tick(60)
@@ -173,24 +206,38 @@ class CarRacing:
 
                 data = self.server.recv(1024).decode()
                 print("data received from server " , data)
-                if len(data.split('|'))>1:
+                if len(data.split('|')) == 3:
                     data = data.split('|')
                     carID = data[0]
+                    score = data[1]
+                    if int(score) >= 1000:
+                        self.display_message(f"{carID} won, game end")
+                        self.connection = False
+                        sleep(3)
+                        pygame.quit()
+                        exit()
 
-                    pos = data[1]
+
+                    pos = data[2]
+                    self.availableCarsScore[carID]=score
+
                     self.availableCars[carID]=pos
                 else:
+                    print(data, " bazet hena ")
                     pos = data
 
                 print("printing the dictionary",self.availableCars)
-                #car_x, car_y = self.read_pos(pos)
-                #self.car_x_coordinate = car_x
-                #self.car_y_coordinate = car_y
+
             except:
                 # Handle server disconnection
 
-                self.crashed = True
+
                 print("Disconnected from the server")
+                self.connection=False
+                pygame.quit()
+                exit()
+                break
+
 
     def display_message(self, msg):
         font = pygame.font.SysFont("comicsansms", 72, True)
