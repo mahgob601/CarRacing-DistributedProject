@@ -3,7 +3,7 @@ import threading
 #main server
 class Server:
     def __init__(self):
-        self.host = "localhost"
+        self.host = "172.31.27.158"
         self.port = 5560
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((self.host, self.port))
@@ -22,30 +22,42 @@ class Server:
                 print("in try in client handle")
                 # Receive the updated coordinates from the client
                 data = client.recv(1024).decode()
-                print(data)
-                print("check1")
-                coords = data.split("|")[2]
-                car_x, car_y = self.read_pos(coords)# throw an exception here bc data is empty
-                print("check2")
-                car.car_x_coordinate = car_x
-                car.car_y_coordinate = car_y
-                print("check3")
-                # Broadcast the updated coordinates to all clients
-                self.serveravailable[address]= coords
-                self.serverscore[address]= int(data.split("|")[1])
-                print(self.serveravailable)
-                print(self.serverscore)
+                if data == "":
+                    raise Exception("empty message spam")
 
-                for c in self.clients:
-                    if c != client:
-                        #myData = str(address) + "|" + data
-                        myData = data
-                        c.sendall(myData.encode())
-                    else:
-                        print("check4")
-            except:
+                splitted_data = data.split('$')
+                for each_data in splitted_data:
+                    if each_data == '':
+                        splitted_data.remove(each_data)
+
+                print(data)
+                print(splitted_data)
+                print("check1")
+                for each_data in splitted_data:
+                    coords = each_data.split("|")[2]
+                    car_x, car_y = self.read_pos(coords)# throw an exception here bc data is empty
+                    print("check2")
+                    car.car_x_coordinate = car_x
+                    car.car_y_coordinate = car_y
+                    print("check3")
+                    # Broadcast the updated coordinates to all clients
+                    self.serveravailable[address]= coords
+                    self.serverscore[address]= int(each_data.split("|")[1])
+                    print(self.serveravailable)
+                    print(self.serverscore)
+
+                    for c in self.clients:
+                        if c != client:
+                            #myData = str(address) + "|" + data
+                            myData = each_data + "$"
+                            c.sendall(myData.encode())
+                        else:
+                            print("check4")
+
+            except Exception as e:
                 # Handle client disconnection
                 print("in exception in client handle")
+                print(e)
                 index = self.clients.index(client)
                 self.clients.remove(client)
                 car = self.cars[index]
