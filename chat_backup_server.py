@@ -1,27 +1,39 @@
 import socket
 import threading
-import time
 
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-server.bind(("172.31.37.219",5560))
+server.bind(("172.31.27.158", 5561))
 
 server.listen()
 clients = []
 nicknames = []
 
-def update_backup():
-    try:
-        sock = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
-        sock.connect(("13.51.48.183",5561))
-        while True:
-            sock.send("backup".encode('utf-8'))
-            time.sleep(2)
-    except:
-        print("backup server not running")
+
+def handle_backup():
+    main_server, address = server.accept()
+    main_server.settimeout(3)
+    while True:
+        try:
+            backup = main_server.recv(1024).decode('utf-8')
+            if backup != "":
+                print(backup)
+            else:
+                print("back up message is empty")
+                raise Exception
+
+        except:
+            print("server crashed")
+            try:
+                main_server.close()
+                receive()
+            except:
+                print("something happened while launching the backup server")
+                break
 
 def broadcast(msg):
     for client in clients:
         client.send(msg)
+
 
 def handle(client):
     while True:
@@ -37,6 +49,7 @@ def handle(client):
             nicknames.remove(nickname)
             break
 
+
 def receive():
     while True:
         client, address = server.accept()
@@ -44,15 +57,13 @@ def receive():
         client.send("NICK".encode('utf-8'))
         nickname = client.recv(1024).decode('utf-8')
         print(f"client's name is " + nickname)
-        connected_clients="NEWCONN"
-
-
+        connected_clients = "NEWCONN"
         clients.append(client)
         nicknames.append(nickname)
         for i in nicknames:
-            connected_clients = connected_clients + " "+ i
+            connected_clients = connected_clients + " " + i
         print(connected_clients)
-        connected_clients = connected_clients+"$"
+        connected_clients = connected_clients + "$"
         broadcast(connected_clients.encode('utf-8'))
 
         broadcast(f"CHAT {nickname} connected to the server!\n$".encode('utf-8'))
@@ -61,9 +72,5 @@ def receive():
         thread.start()
 
 
-receive_thread = threading.Thread(target=receive)
-backup_thread = threading.Thread(target=update_backup)
-backup_thread.start()
-receive_thread.start()
 print("server running")
-
+handle_backup()

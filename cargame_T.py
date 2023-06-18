@@ -1,6 +1,5 @@
 import random
 
-
 import pygame
 from time import sleep
 import socket
@@ -10,8 +9,111 @@ import tkinter.scrolledtext
 from tkinter import simpledialog
 
 
+class ChatClient:
+    connected_clients = []
+    backup_host = "13.51.48.183"
+    backup_port = 5561
+    HOST = "13.48.195.218"
+    PORT = 5560
+
+    def __init__(self, nick):
+
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect((self.HOST, self.PORT))
+        self.gui_done = False
+        self.running = True
+        self.nickname = nick
+
+    def start_chat(self):
+        gui_thread = Thread(target=self.gui_loop)
+        receive_thread = Thread(target=self.receive)
+        gui_thread.start()
+        receive_thread.start()
+
+    def gui_loop(self):
+        self.win = tkinter.Tk()
+        self.win.title(self.nickname)
+        self.win.configure(bg="lightgray")
+
+        self.chat_label = tkinter.Label(self.win, text="Chat:", bg="lightgray")
+        self.chat_label.config(font=("Arial", 12))
+        self.chat_label.pack(padx=20, pady=5)
+
+        self.text_area = tkinter.scrolledtext.ScrolledText(self.win)
+        self.text_area.pack(padx=20, pady=5)
+        self.text_area.config(state='disabled')
+
+        self.msg_label = tkinter.Label(self.win, text="Message:", bg="lightgray")
+        self.msg_label.config(font=("Arial", 12))
+        self.msg_label.pack(padx=20, pady=5)
+
+        self.input_area = tkinter.Text(self.win, height=3)
+        self.input_area.pack(padx=20, pady=5)
+
+        self.send_button = tkinter.Button(self.win, text="Send", command=self.write)
+        self.send_button.config(font=('Arial', 12))
+        self.send_button.pack(padx=20, pady=5)
+
+        self.gui_done = True
+        self.win.protocol("WM_DELETE_WINDOW", self.stop)
+        self.win.mainloop()
+
+    def stop(self):
+        self.running = False
+        self.win.destroy()
+        self.sock.close()
+        exit(0)
+
+    def write(self):
+        message = f"CHAT {self.nickname}: {self.input_area.get('1.0', 'end')}"
+        self.sock.send(message.encode('utf-8'))
+        self.input_area.delete('1.0', 'end')
+
+    def receive(self):
+        print("started receiving")
+        while self.running:
+            try:
+                message = self.sock.recv(1024).decode('utf-8')
+                special_message = message.split('$')
+                if message == "":
+                    raise Exception
+
+                for m in special_message:
+                    splitted_msg = m.split(' ')
+                    print(m)
+
+                    if splitted_msg[0] == "NEWCONN":
+                        connected_clients = []
+                        for x in range(1, len(splitted_msg)):
+                            connected_clients.append(splitted_msg[x])
+                        print(connected_clients)
+                    elif m == "NICK":
+                        self.sock.send(self.nickname.encode('utf-8'))
+                    elif splitted_msg[0] == "CHAT":
+                        if self.gui_done:
+                            splitted_msg.remove("CHAT")
+                            m = ""
+                            for each in splitted_msg:
+                                m = m + " " + each
+
+                            self.text_area.config(state='normal')
+                            self.text_area.insert('end', m)
+                            self.text_area.yview('end')
+                            self.text_area.config(state='disabled')
+
+            except ConnectionAbortedError:
+                break
+            except:
+                print("Main server crashed")
+                self.sock.close()
+                self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                self.sock.connect((self.backup_port, self.backup_port))
+
+                print("connected to backup server")
+
+
 class CarRacing:
-    def __init__(self):
+    def __init__(self,nick):
         pygame.init()
         self.display_width = 800
         self.display_height = 600
@@ -23,10 +125,10 @@ class CarRacing:
         self.car_y_coordinate = 480
         self.availableCars = dict()
         self.availableCarsScore = dict()
-        self.initialize()
-        self.connection=True
+        self.initialize(nick)
+        self.connection = True
 
-    def initialize(self):
+    def initialize(self,nick):
         self.crashed = False
 
         self.car1Img = pygame.image.load('.\\img\\car.png')
@@ -49,24 +151,22 @@ class CarRacing:
         self.bg_speed = 3
         self.count = 0
 
-        self.server_host = "16.16.27.193"  # Replace with the server's host address
+        self.server_host = "13.51.238.1"  # Replace with the server's host address
         self.server_port = 5560  # Replace with the server's port number
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.connect((self.server_host, self.server_port))
-        self.nickname=self.client_Nickname()
+        self.nickname = nick
         self.server.send((self.nickname).encode())
-        self.initialvalues=self.server.recv(1024).decode()
+        self.initialvalues = self.server.recv(1024).decode()
 
-        self.initialvalues=self.initialvalues.split("|")
+        self.initialvalues = self.initialvalues.split("|")
         print(self.initialvalues)
-        self.car_x_coordinate,self.car_y_coordinate=self.read_pos(self.initialvalues[2])
+        self.car_x_coordinate, self.car_y_coordinate = self.read_pos(self.initialvalues[2])
         self.count = int(self.initialvalues[1])
         print("========================================")
 
-
     def car(self, car_x_coordinate, car_y_coordinate):
         self.gameDisplay.blit(self.car1Img, (car_x_coordinate, car_y_coordinate))
-
 
     def racing_window(self):
         self.gameDisplay = pygame.display.set_mode((self.display_width, self.display_height))
@@ -81,10 +181,10 @@ class CarRacing:
 
     def renderOtherClients(self):
         print("hello from the thread")
-        temp_list=[]
+        temp_list = []
         while True:
-            left=0
-            right=30
+            left = 0
+            right = 30
             if len(temp_list) == 0 and len(self.availableCars.keys()) != 0:
                 newClient = Client_car()
                 print("dict as list ")
@@ -108,16 +208,14 @@ class CarRacing:
                 for k in temp_list:
                     thingx, thingy = self.read_pos(self.availableCars[k.tag])
                     self.gameDisplay.blit(k.client_car, (thingx, thingy))
-                    text = font.render(k.tag+" Score : " + str(self.availableCarsScore[k.tag]), True, self.white)
-                    self.gameDisplay.blit(text,(left, right))
+                    text = font.render(k.tag + " Score : " + str(self.availableCarsScore[k.tag]), True, self.white)
+                    self.gameDisplay.blit(text, (left, right))
 
-                    right+=20
-
-
+                    right += 20
 
     def run_car(self):
 
-        #while not self.crashed:
+        # while not self.crashed:
         while self.connection:
 
             for event in pygame.event.get():
@@ -149,9 +247,8 @@ class CarRacing:
 
             self.gameDisplay.fill(self.black)
             self.back_ground_raod()
-            self.car(self.car_x_coordinate, self.car_y_coordinate)#display and update the car
+            self.car(self.car_x_coordinate, self.car_y_coordinate)  # display and update the car
             # habda
-
 
             self.run_enemy_car(self.enemy_car_startx, self.enemy_car_starty)
             self.enemy_car_starty += self.enemy_car_speed  # make care move toward my car
@@ -160,13 +257,13 @@ class CarRacing:
                 self.enemy_car_starty = 0 - self.enemy_car_height
                 self.enemy_car_startx = random.randrange(310, 450)  # update x co of enemy car
 
-            #self.car(self.car_x_coordinate, self.car_y_coordinate)  # first display to the car
+            # self.car(self.car_x_coordinate, self.car_y_coordinate)  # first display to the car
             self.highscore(self.count)
             self.count += 1
 
             if (self.count % 100 == 0):  # increase the car speen each 100 point
                 self.enemy_car_speed += 1
-                #self.enemy_car_speed = 0  # modify untill build 2 cares
+                # self.enemy_car_speed = 0  # modify untill build 2 cares
                 self.bg_speed += 1  # background speed
 
             if self.car_y_coordinate < self.enemy_car_starty + self.enemy_car_height:
@@ -177,8 +274,6 @@ class CarRacing:
             if self.car_x_coordinate < 310 or self.car_x_coordinate > 460:
                 self.crashed = True
                 self.display_message("Game Over !!")
-
-
 
             pygame.display.update()
             self.clock.tick(60)
@@ -199,7 +294,7 @@ class CarRacing:
             self.bg_y2 = -600
 
     def receive_updates(self):
-        #while not self.crashed:
+        # while not self.crashed:
         while True:
             try:
                 # Receive updates from the server
@@ -215,7 +310,7 @@ class CarRacing:
                 print(splitted_data)
 
                 for each_data in splitted_data:
-                    print("data received from server " , each_data)
+                    print("data received from server ", each_data)
                     if len(each_data.split('|')) == 3:
                         each_data = each_data.split('|')
                         carID = each_data[0]
@@ -227,27 +322,25 @@ class CarRacing:
                             pygame.quit()
                             exit()
 
-
                         pos = each_data[2]
-                        self.availableCarsScore[carID]=score
+                        self.availableCarsScore[carID] = score
 
-                        self.availableCars[carID]=pos
+                        self.availableCars[carID] = pos
                     else:
                         print(each_data, " bazet hena ")
                         pos = each_data
 
-                    print("printing the dictionary",self.availableCars)
+                    print("printing the dictionary", self.availableCars)
 
             except Exception as e:
                 # Handle server disconnection
 
                 print(e)
                 print("Disconnected from the server")
-                self.connection=False
+                self.connection = False
                 pygame.quit()
                 exit()
                 break
-
 
     def display_message(self, msg):
         font = pygame.font.SysFont("comicsansms", 72, True)
@@ -257,8 +350,8 @@ class CarRacing:
         pygame.display.update()
         self.clock.tick(60)
         sleep(1)
-        #car_racing.initialize()
-        #car_racing.racing_window()
+        # car_racing.initialize()
+        # car_racing.racing_window()
         self.car_x_coordinate = 360
         self.car_y_coordinate = 480
 
@@ -283,19 +376,23 @@ class CarRacing:
     @staticmethod
     def make_pos(x, y):
         return str(x) + "," + str(y)
-    def client_Nickname(self):
-        msg = tkinter.Tk()
-        msg.withdraw()
-        self.nickname = simpledialog.askstring("Nickname", "Please Choose a nickname", parent=msg)
-        print(self.nickname)
-        return self.nickname
+
+
 class Client_car:
     def __int__(self):
-        self.tag= 'tag'
-        self.client_car ="imagejhdjknd"
+        self.tag = 'tag'
+        self.client_car = "imagejhdjknd"
         self.client_car_width = 49
         self.client_car_height = 100
 
+
 if __name__ == '__main__':
-    car_racing = CarRacing()
-    car_racing.racing_window()
+    msg = tkinter.Tk()
+    msg.withdraw()
+    nickname = simpledialog.askstring("Nickname", "Please Choose a nickname", parent=msg)
+    car_racing = CarRacing(nickname)
+    game_thread = Thread(target=car_racing.racing_window)
+    chat_client = ChatClient(nickname)
+    chat_thread = Thread(target=chat_client.start_chat)
+    game_thread.start()
+    chat_thread.start()
