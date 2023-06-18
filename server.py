@@ -98,6 +98,7 @@ class Server:
             thread = threading.Thread(target=self.handle_client, args=(client, car,nickname))
             thread.start()
 
+
             self.clients.append(client)
             print(f"Active connections: {len(self.clients)}")
 
