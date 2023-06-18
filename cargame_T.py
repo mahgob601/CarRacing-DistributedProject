@@ -49,7 +49,7 @@ class CarRacing:
         self.bg_speed = 3
         self.count = 0
 
-        self.server_host = "localhost"  # Replace with the server's host address
+        self.server_host = "16.16.27.193"  # Replace with the server's host address
         self.server_port = 5560  # Replace with the server's port number
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.connect((self.server_host, self.server_port))
@@ -132,7 +132,7 @@ class CarRacing:
 
                     # Send the updated coordinates to the server
             data = self.make_pos(self.car_x_coordinate, self.car_y_coordinate)
-            msg = self.nickname + "|" + str(self.count) + "|" + data
+            msg = self.nickname + "|" + str(self.count) + "|" + data + "$"
             if self.connection:
                 self.server.sendall(msg.encode())
             else:
@@ -205,33 +205,43 @@ class CarRacing:
                 # Receive updates from the server
 
                 data = self.server.recv(1024).decode()
-                print("data received from server " , data)
-                if len(data.split('|')) == 3:
-                    data = data.split('|')
-                    carID = data[0]
-                    score = data[1]
-                    if int(score) >= 1000:
-                        self.display_message(f"{carID} won, game end")
-                        self.connection = False
-                        sleep(3)
-                        pygame.quit()
-                        exit()
+                if data == "":
+                    raise Exception("empty message received")
+
+                splitted_data = data.split('$')
+                for each_data in splitted_data:
+                    if each_data == '':
+                        splitted_data.remove(each_data)
+                print(splitted_data)
+
+                for each_data in splitted_data:
+                    print("data received from server " , each_data)
+                    if len(each_data.split('|')) == 3:
+                        each_data = each_data.split('|')
+                        carID = each_data[0]
+                        score = each_data[1]
+                        if int(score) >= 1000:
+                            self.display_message(f"{carID} won, game end")
+                            self.connection = False
+                            sleep(3)
+                            pygame.quit()
+                            exit()
 
 
-                    pos = data[2]
-                    self.availableCarsScore[carID]=score
+                        pos = each_data[2]
+                        self.availableCarsScore[carID]=score
 
-                    self.availableCars[carID]=pos
-                else:
-                    print(data, " bazet hena ")
-                    pos = data
+                        self.availableCars[carID]=pos
+                    else:
+                        print(each_data, " bazet hena ")
+                        pos = each_data
 
-                print("printing the dictionary",self.availableCars)
+                    print("printing the dictionary",self.availableCars)
 
-            except:
+            except Exception as e:
                 # Handle server disconnection
 
-
+                print(e)
                 print("Disconnected from the server")
                 self.connection=False
                 pygame.quit()
