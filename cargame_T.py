@@ -151,7 +151,7 @@ class CarRacing:
         self.bg_speed = 3
         self.count = 0
 
-        self.server_host = "16.16.27.193"  # Replace with the server's host address
+        self.server_host = "13.51.238.1"  # Replace with the server's host address
         self.server_port = 5560  # Replace with the server's port number
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.connect((self.server_host, self.server_port))

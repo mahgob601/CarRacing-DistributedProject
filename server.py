@@ -3,7 +3,7 @@ import threading
 #main server
 class Server:
     def __init__(self):
-        self.host = "172.31.27.158"
+        self.host = "172.31.24.25"
         self.port = 5560
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind((self.host, self.port))
